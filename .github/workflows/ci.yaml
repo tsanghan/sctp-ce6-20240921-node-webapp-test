@@ -14,8 +14,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Build, tag, and push image to Amazon ECR
-        id: push-image
+      - name: Test Docker Build
+        id: test-image
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
