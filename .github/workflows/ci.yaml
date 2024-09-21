@@ -1,0 +1,61 @@
+name: ci
+
+on: [workflow_dispatch]
+#   push:
+#     branches:
+#       - main
+
+env:
+  AWS_REGION: ap-southeast-1 #replace-value
+  ECR_REPOSITORY: #replace-value
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr-deploy
+        uses: bitovi/github-actions-deploy-aws-ecr-registry@v0.1.0
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_default_region: us-east-1
+
+          aws_ecr_repo_create: true
+          aws_ecr_repo_type: public
+          aws_ecr_repo_name: tsanghan-ce6/hello-node-app
+
+      # - name: Create ECR Repo
+      #   id: create-ecr-repo
+      #   run:
+      #     aws ecr-public create-repository --repository-name tsanghan-ce6/hello-node-app --region us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+        env:
+          AWS_REGION: us-east-1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: push-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          REGISTRY_ALIAS: u2q1a2y8
+        run: |
+          # docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          # docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          #
+          docker build -t $ECR_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG .
+          # aws ecr-public create-repository --repository-name tsanghan-ce6/hello-node-app --region us-east-1
+          docker push $ECR_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "sha256=$(docker inspect --format='{{index .RepoDigests 0}}' $ECR_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG)" >> $GITHUB_OUTPUT
