@@ -14,6 +14,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Build, tag, and push image to Amazon ECR
+        id: push-image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t local-test:$IMAGE_TAG --target test .
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -56,7 +63,7 @@ jobs:
           # docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           # docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           #
-          docker build -t $ECR_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build -t $ECR_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG --target base .
           # aws ecr-public create-repository --repository-name tsanghan-ce6/hello-node-app --region us-east-1
           docker push $ECR_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
